@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Hotspot-Aware Cooling Demo</title>
+  <link rel="stylesheet" href="/css/demo.css">
+</head>
+<body>
+
+<h1>Hotspot-Aware Cooling Demo</h1>
+<p>
+  This demo simulates a chip surface where random hotspots form over time. 
+  Activate the hotspot-aware system to see it automatically cool the hottest areas.
+</p>
+
+<div class="controls">
+  <button id="startBtn">Start Simulation</button>
+  <button id="stopBtn" disabled>Stop Simulation</button>
+  <button id="toggleCoolingBtn">Activate Hotspot Cooling</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="stats" id="stats">
+  <p><strong>Simulation Status:</strong> <span id="simStatus">Stopped</span></p>
+  <p><strong>Cooling Mode:</strong> <span id="coolingMode">Inactive</span></p>
+  <p><strong>Max Temp (°C):</strong> <span id="maxTemp">-</span></p>
+</div>
+<script src="/js/demo.js"></script>
+</body>
+</html>
