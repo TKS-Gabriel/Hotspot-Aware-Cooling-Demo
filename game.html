@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hotspot Cooling Challenge Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #F3F3F3;
+      margin: 0;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    h1 {
+      color: #0078D4;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, 50px);
+      grid-gap: 2px;
+      margin: 20px auto;
+      width: fit-content;
+    }
+
+    .cell {
+      width: 50px;
+      height: 50px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s;
+    }
+
+    .cell.warning {
+      animation: flash 0.5s infinite alternate;
+    }
+
+    @keyframes flash {
+      from { background-color: orange; }
+      to { background-color: red; }
+    }
+
+    .info {
+      margin-top: 1rem;
+      background: #FFF;
+      padding: 1rem;
+      border-radius: 8px;
+      display: inline-block;
+      text-align: left;
+    }
+
+    .info p {
+      margin: 0.3rem 0;
+    }
+
+    .status {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .win {
+      color: green;
+    }
+
+    .lose {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🔥 Hotspot Cooling Challenge 🔥</h1>
+<p>Cool the hotspots before they overheat! Click the hottest cells to reduce the temperature.</p>
+
+<div class="grid" id="grid"></div>
+
+<div class="info">
+  <p><strong>Score:</strong> <span id="score">0</span></p>
+  <p><strong>Time Remaining:</strong> <span id="timer">45</span> seconds</p>
+  <p><strong>Max Temperature:</strong> <span id="maxTemp">-</span></p>
+</div>
+
+<div class="status" id="statusMessage"></div>
+
+<script>
+  // -----------------------
+  // Configuration Settings
+  // -----------------------
+  const ROWS = 8;
+  const COLS = 8;
+  const UPDATE_INTERVAL = 1000;  // Time between each heat cycle
+  const SPIKE_CHANCE = 0.07;     // Reduced initial heat spike chance
+  const SPIKE_AMOUNT_MIN = 5;    
+  const SPIKE_AMOUNT_MAX = 15;   // Lower spike range for smoother gameplay
+  const COOLING_AMOUNT = 20;     // Cooling effect when user clicks
+  const WIN_SCORE = 300;         // Winning score threshold
+  const MAX_TEMP_THRESHOLD = 200; // Higher temperature limit for better gameplay
+
+  // -----------------------
+  // Game State
+  // -----------------------
+  let gridData = [];
+  let score = 0;
+  let timer = 45;
+  let gameRunning = false;
+  let timerInterval = null;
+
+  // DOM Elements
+  const gridEl = document.getElementById('grid');
+  const scoreEl = document.getElementById('score');
+  const timerEl = document.getElementById('timer');
+  const maxTempEl = document.getElementById('maxTemp');
+  const statusMessageEl = document.getElementById('statusMessage');
+
+  // -----------------------
+  // Initialization
+  // -----------------------
+  function initGrid() {
+    gridData = [];
+    gridEl.innerHTML = '';
+
+    for (let r = 0; r < ROWS; r++) {
+      gridData[r] = [];
+      for (let c = 0; c < COLS; c++) {
+        const temp = 70 + Math.floor(Math.random() * 5); // Start near ambient
+        gridData[r][c] = temp;
+
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.id = `cell-${r}-${c}`;
+        cell.addEventListener('click', () => coolCell(r, c)); // User clicks to cool
+        gridEl.appendChild(cell);
+      }
+    }
+
+    renderGrid();
+    startGame();
+  }
+
+  // -----------------------
+  // Game Logic
+  // -----------------------
+  function startGame() {
+    score = 0;
+    timer = 45;
+    gameRunning = true;
+    statusMessageEl.textContent = '';
+    scoreEl.textContent = score;
+
+    timerInterval = setInterval(() => {
+      if (timer <= 0) {
+        endGame('lose');
+        return;
+      }
+
+      timer--;
+      timerEl.textContent = timer;
+
+      // Random heat spikes
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (Math.random() < SPIKE_CHANCE) {
+            const spike = randomInt(SPIKE_AMOUNT_MIN, SPIKE_AMOUNT_MAX);
+            gridData[r][c] += spike;
+          }
+        }
+      }
+
+      checkTemperature();
+      renderGrid();
+    }, UPDATE_INTERVAL);
+  }
+
+  function coolCell(r, c) {
+    if (!gameRunning) return;
+
+    if (gridData[r][c] > 75) {
+      gridData[r][c] -= COOLING_AMOUNT;
+      score += 10;
+    } else {
+      score -= 5;  // Incorrect click penalty
+    }
+
+    scoreEl.textContent = score;
+
+    if (score >= WIN_SCORE) {
+      endGame('win');
+    }
+
+    renderGrid();
+  }
+
+  function checkTemperature() {
+    let maxTemp = 0;
+
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (gridData[r][c] > maxTemp) {
+          maxTemp = gridData[r][c];
+        }
+
+        const cellEl = document.getElementById(`cell-${r}-${c}`);
+        if (gridData[r][c] >= MAX_TEMP_THRESHOLD - 30) {
+          cellEl.classList.add('warning'); // Flash warning for critical temps
+        } else {
+          cellEl.classList.remove('warning');
+        }
+      }
+    }
+
+    maxTempEl.textContent = maxTemp;
+
+    if (maxTemp >= MAX_TEMP_THRESHOLD) {
+      endGame('lose');
+    }
+  }
+
+  function endGame(result) {
+    clearInterval(timerInterval);
+    gameRunning = false;
+
+    if (result === 'win') {
+      statusMessageEl.textContent = '🎯 You Win! Great Job!';
+      statusMessageEl.classList.add('win');
+    } else {
+      statusMessageEl.textContent = '💥 Game Over! The chip overheated!';
+      statusMessageEl.classList.add('lose');
+    }
+  }
+
+  // -----------------------
+  // Rendering
+  // -----------------------
+  function renderGrid() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cellTemp = gridData[r][c];
+        const cellEl = document.getElementById(`cell-${r}-${c}`);
+        cellEl.textContent = Math.round(cellTemp);
+        cellEl.style.backgroundColor = getColorForTemperature(cellTemp);
+      }
+    }
+  }
+
+  function getColorForTemperature(temp) {
+    const minTemp = 70;
+    const maxTemp = 200;
+    const ratio = Math.min((temp - minTemp) / (maxTemp - minTemp), 1);
+    const hue = 240 - Math.round(240 * ratio);
+    return `hsl(${hue}, 80%, 50%)`;
+  }
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  // -----------------------
+  // Start the game
+  // -----------------------
+  window.onload = initGrid;
+</script>
+
+</body>
+</html>
